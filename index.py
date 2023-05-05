@@ -5,6 +5,8 @@ from selenium.webdriver.common.keys import Keys
 import csv
 import sys
 import time
+import random
+import hashlib
 import unidecode 
 #for encode the all characters this is require
 dataFile = ""
@@ -17,7 +19,7 @@ print("itapasse hari aye enter ekk gahala balagena inna browser eka close karann
 browser = webdriver.Chrome('chromedriver')
 (browser.page_source).encode('utf-8')
 browser.get("https://m.facebook.com")
-time.sleep(20)
+time.sleep(10)
 linkCount = int(input("how much link you need [page eke nathi tharam danna epa huthta 100k wage dapan parana ekak nam]"))
 
 input('hit enter when need to start')
@@ -32,16 +34,43 @@ while linkCount > len(links):
       print(len(links))
       links = browser.find_elements(By.CLASS_NAME,"_5rgt")
     
-links = browser.find_elements(By.CLASS_NAME,"_5rgt")
-postLink = browser.find_elements(By.CLASS_NAME,"_5msj")
-postTime = browser.find_elements(By.CLASS_NAME,"_36xo")
-counter =0
-for i in links:
-    dataFile = open("items.txt", 'a', newline=' ', encoding='utf-8')
-    writer = csv.writer(dataFile)
-    writer.writerow([i.text,postLink[counter].get_attribute("href"), postTime[counter].text])
-    dataFile.close()
-    print(i.text)
-    print(postLink[counter].get_attribute("href"))
-    print(postTime[counter].text)
-    counter +=1
+links = browser.find_elements(By.CLASS_NAME,"_5msj")
+postLinks = []
+for link in links:
+     postLinks.append(link.get_attribute("href"))
+#going through all the post links and grab the data
+for index, link in enumerate(postLinks):
+     browser.get(link)
+     time.sleep(3)
+     post_text = browser.find_element(By.CLASS_NAME, "_5rgt").text
+     browser.get(link.replace("m.facebook.com", "mbasic.facebook.com")) #open the link
+     post_images = browser.find_elements(By.CSS_SELECTOR, ".z.ba [data-ft] img")
+     time.sleep(5)
+     if len(post_images) >= 2:
+          post_images = post_images.pop()
+
+     imageUrls = []   
+     if len(post_images) >0:
+          for post in post_images:
+               imageUrls.append(post.get_attribute("src"))
+
+     imageNames= []
+     if len(imageUrls) > 0:
+          for image in imageUrls:
+               browser.get(image)
+               time.sleep(3)
+               browser.save_screenshot("ss/"+str(index) + hashlib.sha256(image.encode("utf-8")).hexdigest() +".png")
+               imageNames.append(str(index) + hashlib.sha256(image.encode("utf-8")).hexdigest() +".png")
+
+     dataFile = open("items.csv", 'a', newline='\n', encoding='utf-8')
+     writer = csv.writer(dataFile)
+     writer.writerow([index, link, post_text, imageNames])
+     dataFile.close()
+
+
+# for i in links:
+#     dataFile = open("items.txt", 'a', newline=' ', encoding='utf-8')
+#     writer = csv.writer(dataFile)
+#     writer.writerow([i.text,postLink[counter].get_attribute("href"), postTime[counter].text])
+#     dataFile.close()
+#     counter +=1
